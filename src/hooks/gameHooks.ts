@@ -130,8 +130,6 @@ export function useDeviceOrientation() {
   const [lastBeta, setLastBeta] = useState<number | null>(null);
   const [direction, setDirection] = useState<'up' | 'down' | 'neutral'>('neutral');
   const [isSupported, setIsSupported] = useState(false);
-  const [gestureInProgress, setGestureInProgress] = useState(false);
-  const [lastGestureTime, setLastGestureTime] = useState(0);
 
   useEffect(() => {
     // Check if DeviceOrientationEvent is available
@@ -145,45 +143,14 @@ export function useDeviceOrientation() {
       if (e.beta !== null) {
         setOrientation({ beta: e.beta });
         
-        // Prevent registering new gestures if one is in progress or cooldown is active
-        const now = Date.now();
-        const cooldownPeriod = 1000; // 1 second cooldown between gestures
-        if (gestureInProgress || now - lastGestureTime < cooldownPeriod) {
-          return;
-        }
-        
         if (lastBeta !== null) {
-          const upThreshold = -30; // More extreme threshold for "up" gesture
-          const downThreshold = 30; // More extreme threshold for "down" gesture
-          const neutralThreshold = 10; // Return to neutral when close to flat
+          const threshold = 35; // degrees of tilt to trigger
           
-          // Only detect a gesture when there's a significant change from the previous state
-          const deltaThreshold = 20; // Minimum change to count as intentional
-          const deltaChange = Math.abs((e.beta || 0) - (lastBeta || 0));
-          
-          if (e.beta < upThreshold && lastBeta > -neutralThreshold && deltaChange > deltaThreshold) {
+          if (e.beta < -threshold && (lastBeta >= -threshold || lastBeta === null)) {
             setDirection('up');
-            setGestureInProgress(true);
-            setLastGestureTime(now);
-            
-            // Reset to neutral after a delay
-            setTimeout(() => {
-              setDirection('neutral');
-              setGestureInProgress(false);
-            }, 800);
-            
-          } else if (e.beta > downThreshold && lastBeta < neutralThreshold && deltaChange > deltaThreshold) {
+          } else if (e.beta > threshold && (lastBeta <= threshold || lastBeta === null)) {
             setDirection('down');
-            setGestureInProgress(true);
-            setLastGestureTime(now);
-            
-            // Reset to neutral after a delay
-            setTimeout(() => {
-              setDirection('neutral');
-              setGestureInProgress(false);
-            }, 800);
-            
-          } else if (Math.abs(e.beta) < neutralThreshold && !gestureInProgress) {
+          } else if (Math.abs(e.beta) < threshold/2) {
             setDirection('neutral');
           }
         }
@@ -197,7 +164,7 @@ export function useDeviceOrientation() {
     return () => {
       window.removeEventListener('deviceorientation', handleOrientation);
     };
-  }, [lastBeta, gestureInProgress, lastGestureTime]);
+  }, [lastBeta]);
 
   // Define interface for DeviceOrientationEvent with iOS-specific requestPermission
   interface DeviceOrientationEventiOS extends DeviceOrientationEvent {
@@ -223,59 +190,38 @@ export function useDeviceOrientation() {
     direction,
     isSupported,
     requestPermission,
-    gestureInProgress, // Export so the game can use this to prevent duplicate actions
   };
 }
 
 export function useKeyboardControls() {
   const [keyDirection, setKeyDirection] = useState<'up' | 'down' | 'neutral'>('neutral');
-  const [keyGestureInProgress, setKeyGestureInProgress] = useState(false);
-  const [lastKeyGestureTime, setLastKeyGestureTime] = useState(0);
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent registering new gestures if one is in progress or cooldown is active
-      const now = Date.now();
-      const cooldownPeriod = 1000; // 1 second cooldown between key gestures
-      if (keyGestureInProgress || now - lastKeyGestureTime < cooldownPeriod) {
-        return;
-      }
-      
       if (e.key === 'ArrowDown') {
         setKeyDirection('down');
-        setKeyGestureInProgress(true);
-        setLastKeyGestureTime(now);
         e.preventDefault();
-        
-        // Reset to neutral after a delay
-        setTimeout(() => {
-          setKeyDirection('neutral');
-          setKeyGestureInProgress(false);
-        }, 800);
-        
       } else if (e.key === 'ArrowUp') {
         setKeyDirection('up');
-        setKeyGestureInProgress(true);
-        setLastKeyGestureTime(now);
         e.preventDefault();
-        
-        // Reset to neutral after a delay
-        setTimeout(() => {
-          setKeyDirection('neutral');
-          setKeyGestureInProgress(false);
-        }, 800);
+      }
+    };
+    
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        setKeyDirection('neutral');
+        e.preventDefault();
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
     
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [keyGestureInProgress, lastKeyGestureTime]);
+  }, []);
 
-  return {
-    keyDirection,
-    keyGestureInProgress // Export this so the game can use it to prevent duplicate actions
-  };
+  return keyDirection;
 }
