@@ -66,7 +66,7 @@ export function useGameState(settings: GameSettings) {
         setGameState('finished');
       }
       setActionInProgress(false);
-    }, 1000); // 1000ms delay
+    }, 1500); // 1000ms delay
   }, [gameState, currentItems, currentItemIndex, actionInProgress]);
 
   // Mark current item as skipped
@@ -89,7 +89,7 @@ export function useGameState(settings: GameSettings) {
         setGameState('finished');
       }
       setActionInProgress(false);
-    }, 1000); // 1000ms delay
+    }, 1500); // 1000ms delay
   }, [gameState, currentItems, currentItemIndex, actionInProgress]);
 
   // Timer effect
