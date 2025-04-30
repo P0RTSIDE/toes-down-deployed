@@ -6,6 +6,7 @@ import {
   useDeviceOrientation,
   useKeyboardControls,
 } from "../hooks/gameHooks";
+import GameResults from "./GameResults";
 
 // Define interface for DeviceOrientationEvent with iOS permission API
 interface DeviceOrientationEventiOS extends DeviceOrientationEvent {
@@ -28,6 +29,7 @@ export default function Gameplay({
   const [, setIsDeviceOrientationGranted] = useState(false);
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const [countdown, setCountdown] = useState(3);
+  const [showResults, setShowResults] = useState(false);
 
   const gameSettings = { selectedPacks: [], timeLimit };
   const {
@@ -40,6 +42,7 @@ export default function Gameplay({
     beginPlay,
     markCorrect,
     markSkipped,
+    endGame,
   } = useGameState(gameSettings);
 
   const {
@@ -128,6 +131,26 @@ export default function Gameplay({
       startGame(gameItems);
     }
   };
+
+  const handleEndGame = () => {
+    // Show the results screen instead of immediately calling onCancel
+    setShowResults(true);
+    
+    // If endGame is available in your hook, use it to properly end the game state
+    if (gameState === "playing" && typeof endGame === "function") {
+      endGame();
+    }
+  };
+
+  // Results screen
+  if (showResults) {
+    return (
+      <GameResults 
+        score={score}
+        onPlayAgain={() => onFinish(score)}
+      />
+    );
+  }
 
   // Permission prompt
   if (showPermissionPrompt) {
@@ -230,7 +253,7 @@ export default function Gameplay({
         </div>
 
         {/* Cancel button */}
-        <button onClick={onCancel} className="button mt-8 w-full">
+        <button onClick={handleEndGame} className="button mt-8 w-full">
           End Game
         </button>
       </div>
