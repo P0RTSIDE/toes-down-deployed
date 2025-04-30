@@ -26,7 +26,7 @@ export default function Gameplay({
   onFinish,
   onCancel,
 }: GameplayProps) {
-  const [, setIsDeviceOrientationGranted] = useState(false);
+  const [isDeviceOrientationGranted, setIsDeviceOrientationGranted] = useState(false);
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -49,9 +49,10 @@ export default function Gameplay({
     direction: gyroDirection,
     isSupported: isGyroSupported,
     requestPermission,
+    gestureInProgress: gyroGestureInProgress,
   } = useDeviceOrientation();
 
-  const keyDirection = useKeyboardControls();
+  const { keyDirection, keyGestureInProgress } = useKeyboardControls();
 
   // Check for device orientation permission requirements
   useEffect(() => {
@@ -107,12 +108,19 @@ export default function Gameplay({
   useEffect(() => {
     if (gameState !== "playing" || actionInProgress) return;
 
-    const direction =
-      gyroDirection !== "neutral" ? gyroDirection : keyDirection;
+    // Prevent triggering actions if either gesture system is in progress
+    if (gyroGestureInProgress || keyGestureInProgress) return;
 
-    if (direction === "up" && !isCorrect) {
+    // Determine which control system triggered a gesture
+    const gyroTriggered = gyroDirection !== 'neutral';
+    const keyTriggered = keyDirection !== 'neutral';
+    
+    // Prioritize gyro input over keyboard if both happen simultaneously
+    const effectiveDirection = gyroTriggered ? gyroDirection : keyTriggered ? keyDirection : 'neutral';
+
+    if (effectiveDirection === "up" && !isCorrect) {
       handleMarkCorrect();
-    } else if (direction === "down") {
+    } else if (effectiveDirection === "down") {
       markSkipped();
     }
   }, [
@@ -123,6 +131,8 @@ export default function Gameplay({
     markSkipped,
     isCorrect,
     handleMarkCorrect,
+    gyroGestureInProgress,
+    keyGestureInProgress,
   ]);
 
   // Finish game when time is up or game state is finished
