@@ -26,8 +26,7 @@ export default function Gameplay({
   onFinish,
   onCancel,
 }: GameplayProps) {
-  // We only need the setter for this state, not the value itself
-const [, setIsDeviceOrientationGranted] = useState(false);
+  const [, setIsDeviceOrientationGranted] = useState(false);
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -50,10 +49,9 @@ const [, setIsDeviceOrientationGranted] = useState(false);
     direction: gyroDirection,
     isSupported: isGyroSupported,
     requestPermission,
-    gestureInProgress: gyroGestureInProgress,
   } = useDeviceOrientation();
 
-  const { keyDirection, keyGestureInProgress } = useKeyboardControls();
+  const keyDirection = useKeyboardControls();
 
   // Check for device orientation permission requirements
   useEffect(() => {
@@ -109,19 +107,12 @@ const [, setIsDeviceOrientationGranted] = useState(false);
   useEffect(() => {
     if (gameState !== "playing" || actionInProgress) return;
 
-    // Prevent triggering actions if either gesture system is in progress
-    if (gyroGestureInProgress || keyGestureInProgress) return;
+    const direction =
+      gyroDirection !== "neutral" ? gyroDirection : keyDirection;
 
-    // Determine which control system triggered a gesture
-    const gyroTriggered = gyroDirection !== 'neutral';
-    const keyTriggered = keyDirection !== 'neutral';
-    
-    // Prioritize gyro input over keyboard if both happen simultaneously
-    const effectiveDirection = gyroTriggered ? gyroDirection : keyTriggered ? keyDirection : 'neutral';
-
-    if (effectiveDirection === "up" && !isCorrect) {
+    if (direction === "up" && !isCorrect) {
       handleMarkCorrect();
-    } else if (effectiveDirection === "down") {
+    } else if (direction === "down") {
       markSkipped();
     }
   }, [
@@ -132,8 +123,6 @@ const [, setIsDeviceOrientationGranted] = useState(false);
     markSkipped,
     isCorrect,
     handleMarkCorrect,
-    gyroGestureInProgress,
-    keyGestureInProgress,
   ]);
 
   // Finish game when time is up or game state is finished
