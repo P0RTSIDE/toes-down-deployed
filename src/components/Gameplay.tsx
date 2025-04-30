@@ -30,6 +30,7 @@ export default function Gameplay({
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [showResults, setShowResults] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
 
   const gameSettings = { selectedPacks: [], timeLimit };
   const {
@@ -90,6 +91,16 @@ export default function Gameplay({
     return () => clearInterval(timer);
   }, [gameState, beginPlay]);
 
+  // Add a custom handler for marking correct to trigger animation
+  const handleMarkCorrect = () => {
+    setIsCorrect(true);
+    // This will show the animation, then after a delay, mark it correct
+    setTimeout(() => {
+      markCorrect();
+      setIsCorrect(false);
+    }, 500); // Adjust timing based on your animation duration
+  };
+
   // Handle direction changes from gyro or keyboard
   useEffect(() => {
     if (gameState !== "playing" || actionInProgress) return;
@@ -97,8 +108,8 @@ export default function Gameplay({
     const direction =
       gyroDirection !== "neutral" ? gyroDirection : keyDirection;
 
-    if (direction === "up") {
-      markCorrect();
+    if (direction === "up" && !isCorrect) {
+      handleMarkCorrect();
     } else if (direction === "down") {
       markSkipped();
     }
@@ -109,6 +120,7 @@ export default function Gameplay({
     keyDirection,
     markCorrect,
     markSkipped,
+    isCorrect,
   ]);
 
   // Finish game when time is up
@@ -224,7 +236,7 @@ export default function Gameplay({
 
         {/* Game card */}
         <div
-          className={`game-card ${gyroDirection === "up" ? "flipped" : ""} ${
+          className={`game-card ${isCorrect ? "flipped" : ""} ${
             actionInProgress ? "opacity-70 pointer-events-none" : ""
           }`}
         >
