@@ -144,7 +144,7 @@ export function useDeviceOrientation() {
         setOrientation({ beta: e.beta });
         
         if (lastBeta !== null) {
-          const threshold = 35; // degrees of tilt to trigger
+          const threshold = 20; // degrees of tilt to trigger
           
           if (e.beta < -threshold && (lastBeta >= -threshold || lastBeta === null)) {
             setDirection('up');
