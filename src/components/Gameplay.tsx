@@ -26,7 +26,8 @@ export default function Gameplay({
   onFinish,
   onCancel,
 }: GameplayProps) {
-  const [isDeviceOrientationGranted, setIsDeviceOrientationGranted] = useState(false);
+  // We only need the setter for this state, not the value itself
+const [, setIsDeviceOrientationGranted] = useState(false);
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [isCorrect, setIsCorrect] = useState(false);
