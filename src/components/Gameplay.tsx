@@ -42,7 +42,6 @@ export default function Gameplay({
     beginPlay,
     markCorrect,
     markSkipped,
-    endGame,
   } = useGameState(gameSettings);
 
   const {
@@ -136,20 +135,24 @@ export default function Gameplay({
     // Show the results screen instead of immediately calling onCancel
     setShowResults(true);
     
-    // If endGame is available in your hook, use it to properly end the game state
-    if (gameState === "playing" && typeof endGame === "function") {
-      endGame();
-    }
+    // We don't have an endGame function in the hook,
+    // but we can still show the results when user ends the game
   };
 
   // Results screen
   if (showResults) {
     return (
-      <GameResults 
-        score={score}
-        onPlayAgain={() => onFinish(score)}
-        onExit={onCancel}
-      />
+      <div>
+        <GameResults 
+          score={score}
+          onPlayAgain={() => onFinish(score)}
+        />
+        <div className="container mt-4">
+          <button onClick={onCancel} className="button w-full">
+            Back to Menu
+          </button>
+        </div>
+      </div>
     );
   }
 
