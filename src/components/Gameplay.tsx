@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   useGameState,
   useDeviceOrientation,
@@ -29,7 +29,6 @@ export default function Gameplay({
   const [, setIsDeviceOrientationGranted] = useState(false);
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const [countdown, setCountdown] = useState(3);
-  const [showResults, setShowResults] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
 
   const gameSettings = { selectedPacks: [], timeLimit };
@@ -43,6 +42,7 @@ export default function Gameplay({
     beginPlay,
     markCorrect,
     markSkipped,
+    resetGame,
   } = useGameState(gameSettings);
 
   const {
@@ -91,15 +91,17 @@ export default function Gameplay({
     return () => clearInterval(timer);
   }, [gameState, beginPlay]);
 
-  // Add a custom handler for marking correct to trigger animation
-  const handleMarkCorrect = () => {
+  // Define handleMarkCorrect with useCallback to prevent recreation on each render
+  const handleMarkCorrect = useCallback(() => {
+    if (gameState !== "playing" || actionInProgress) return;
+    
     setIsCorrect(true);
     // This will show the animation, then after a delay, mark it correct
     setTimeout(() => {
       markCorrect();
       setIsCorrect(false);
     }, 500); // Adjust timing based on your animation duration
-  };
+  }, [gameState, actionInProgress, markCorrect]);
 
   // Handle direction changes from gyro or keyboard
   useEffect(() => {
@@ -118,12 +120,12 @@ export default function Gameplay({
     actionInProgress,
     gyroDirection,
     keyDirection,
-    markCorrect,
     markSkipped,
     isCorrect,
+    handleMarkCorrect,
   ]);
 
-  // Finish game when time is up
+  // Finish game when time is up or game state is finished
   useEffect(() => {
     if (gameState === "finished") {
       onFinish({
@@ -144,20 +146,28 @@ export default function Gameplay({
   };
 
   const handleEndGame = () => {
-    // Show the results screen instead of immediately calling onCancel
-    setShowResults(true);
-    
-    // We don't have an endGame function in the hook,
-    // but we can still show the results when user ends the game
+    // Properly end the game by setting the game state to finished
+    if (gameState === "playing") {
+      // This will trigger the useEffect above to call onFinish
+      // and the timer will stop
+      resetGame();
+      onFinish({
+        correct: score.correct,
+        skipped: score.skipped,
+      });
+    }
   };
 
-  // Results screen
-  if (showResults) {
+  // Results screen - no longer using a separate state for this
+  if (gameState === "finished") {
     return (
       <div>
         <GameResults 
           score={score}
-          onPlayAgain={() => onFinish(score)}
+          onPlayAgain={() => {
+            resetGame();
+            startGame(gameItems);
+          }}
         />
         <div className="container mt-4">
           <button onClick={onCancel} className="button w-full">
@@ -268,7 +278,7 @@ export default function Gameplay({
           </div>
         </div>
 
-        {/* Cancel button */}
+        {/* End Game button */}
         <button onClick={handleEndGame} className="button mt-8 w-full">
           End Game
         </button>
