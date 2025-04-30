@@ -148,6 +148,7 @@ export default function Gameplay({
       <GameResults 
         score={score}
         onPlayAgain={() => onFinish(score)}
+        onExit={onCancel}
       />
     );
   }
