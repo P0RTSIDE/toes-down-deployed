@@ -167,7 +167,7 @@ export function useDeviceOrientation() {
         setOrientation({ beta: e.beta });
         
         if (lastBeta !== null) {
-          const threshold = 40; // Reduced threshold for more sensitivity
+          const threshold = 32; // Reduced threshold for more sensitivity
           const now = Date.now();
           
           // Add debounce to prevent direction flickering
