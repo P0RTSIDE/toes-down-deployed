@@ -77,7 +77,7 @@ export function useGameState(settings: GameSettings) {
           setGameState('finished');
         }
         setActionInProgress(false);
-      }, 500); // Reduced from 2000ms to 500ms for better responsiveness
+      }, 2000); // Reduced from 2000ms to 500ms for better responsiveness
     });
   }, [gameState, currentItems, currentItemIndex, lastActionTimestamp]);
 
@@ -110,7 +110,7 @@ export function useGameState(settings: GameSettings) {
           setGameState('finished');
         }
         setActionInProgress(false);
-      }, 500); // Reduced from 2000ms to 500ms for better responsiveness
+      }, 2000); // Reduced from 2000ms to 500ms for better responsiveness
     });
   }, [gameState, currentItems, currentItemIndex, lastActionTimestamp]);
 
@@ -127,7 +127,7 @@ export function useGameState(settings: GameSettings) {
         }
         return prev - 1;
       });
-    }, 1000);
+    }, 1500);
 
     return () => clearInterval(timer);
   }, [gameState]);
@@ -167,7 +167,7 @@ export function useDeviceOrientation() {
         setOrientation({ beta: e.beta });
         
         if (lastBeta !== null) {
-          const threshold = 25; // Reduced threshold for more sensitivity
+          const threshold = 40; // Reduced threshold for more sensitivity
           const now = Date.now();
           
           // Add debounce to prevent direction flickering
