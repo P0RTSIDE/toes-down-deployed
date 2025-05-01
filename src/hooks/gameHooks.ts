@@ -198,7 +198,7 @@ export function useDeviceOrientation() {
               (lastBeta === null || lastBeta >= -neutralThreshold) && 
               now - lastDirectionChange > upwardDebounce) {
             // Check if upward movement is consistent
-            const isUpConsistent = newReadings.every(beta => beta < -upThreshold/1.5);
+            const isUpConsistent = newReadings.every(beta => beta < -(upThreshold/1.5));
             
             if (isUpConsistent) {
               setDirection('up');
@@ -210,7 +210,7 @@ export function useDeviceOrientation() {
                   (lastBeta === null || lastBeta <= neutralThreshold) && 
                   now - lastDirectionChange > downwardDebounce) {
             // Check if downward movement is consistent
-            const isDownConsistent = newReadings.every(beta => beta > downThreshold/1.5);
+            const isDownConsistent = newReadings.every(beta => beta > (downThreshold/1.5));
             
             if (isDownConsistent) {
               setDirection('down');
