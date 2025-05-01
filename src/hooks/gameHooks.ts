@@ -49,13 +49,12 @@ export function useGameState(settings: GameSettings) {
   }, []);
 
   // Mark current item as correct with improved responsiveness
-  // Mark current item as correct with improved sensitivity
   const markCorrect = useCallback(() => {
     if (gameState !== 'playing' || actionInProgress) return;
     
-    // Shorter debounce for correct actions to make them more responsive
+    // Prevent rapid sequential actions with longer debounce
     const now = Date.now();
-    if (now - lastActionTimestamp < 600) return;
+    if (now - lastActionTimestamp < 800) return;
     setLastActionTimestamp(now);
 
     // Immediately update score and set action in progress
@@ -69,7 +68,7 @@ export function useGameState(settings: GameSettings) {
 
     // Use requestAnimationFrame for smoother transitions
     requestAnimationFrame(() => {
-      // Shorter delay for better responsiveness on correct actions
+      // Slightly longer delay for better visual feedback
       setTimeout(() => {
         if (currentItemIndex < currentItems.length - 1) {
           setCurrentItemIndex(prev => prev + 1);
@@ -78,9 +77,8 @@ export function useGameState(settings: GameSettings) {
           setGameState('finished');
         }
         setActionInProgress(false);
-      }, 700); // Slightly shorter delay for correct actions
+      }, 800); // Adjusted delay for better user feedback
     });
-  }, [gameState, currentItems, currentItemIndex, lastActionTimestamp, actionInProgress]);
   }, [gameState, currentItems, currentItemIndex, lastActionTimestamp, actionInProgress]);
 
   // Mark current item as skipped with improved responsiveness
@@ -178,50 +176,35 @@ export function useDeviceOrientation() {
           // Use average of recent readings to reduce jitter
           const avgBeta = newReadings.reduce((sum, val) => sum + val, 0) / newReadings.length;
           
-          // Different thresholds for up and down movements
-          // Lower threshold for upward tilt (correct) to make it more sensitive
-          const upThreshold = 25;
-          // Higher threshold for downward tilt (skip) to make it more resistant to false triggers
-          const downThreshold = 32;
-          
-          // Neutral threshold for returning to center position
-          const neutralThreshold = 15;
-          
+          // More conservative threshold to prevent misreadings
+          const threshold = 29; 
+          // Higher hysteresis value (difference between triggering and resetting)
+          const neutralThreshold = threshold / 3;
           const now = Date.now();
           
-          // Slightly shorter debounce for upward motion to make it more responsive
-          const upwardDebounce = 350;
-          const downwardDebounce = 400;
-          
-          // For upward motion (correct)
-          if (avgBeta < -upThreshold && 
-              (lastBeta === null || lastBeta >= -neutralThreshold) && 
-              now - lastDirectionChange > upwardDebounce) {
-            // Check if upward movement is consistent
-            const isUpConsistent = newReadings.every(beta => beta < -(upThreshold/1.5));
+          // Longer debounce to prevent accidental triggers
+          if (now - lastDirectionChange > 400) {
+            // Check if movement is consistent in one direction
+            const isConsistent = newReadings.every(beta => 
+              (avgBeta < -threshold && beta < -neutralThreshold) || 
+              (avgBeta > threshold && beta > neutralThreshold)
+            );
             
-            if (isUpConsistent) {
-              setDirection('up');
+            if (isConsistent) {
+              if (avgBeta < -threshold && (lastBeta === null || lastBeta >= -neutralThreshold)) {
+                setDirection('up');
+                setLastDirectionChange(now);
+              } else if (avgBeta > threshold && (lastBeta === null || lastBeta <= neutralThreshold)) {
+                setDirection('down');
+                setLastDirectionChange(now);
+              }
+            }
+            
+            // Only go to neutral state when firmly in neutral zone
+            if (Math.abs(avgBeta) < neutralThreshold && direction !== 'neutral') {
+              setDirection('neutral');
               setLastDirectionChange(now);
             }
-          } 
-          // For downward motion (skip)
-          else if (avgBeta > downThreshold && 
-                  (lastBeta === null || lastBeta <= neutralThreshold) && 
-                  now - lastDirectionChange > downwardDebounce) {
-            // Check if downward movement is consistent
-            const isDownConsistent = newReadings.every(beta => beta > (downThreshold/1.5));
-            
-            if (isDownConsistent) {
-              setDirection('down');
-              setLastDirectionChange(now);
-            }
-          }
-          
-          // Only go to neutral state when firmly in neutral zone
-          if (Math.abs(avgBeta) < neutralThreshold && direction !== 'neutral') {
-            setDirection('neutral');
-            setLastDirectionChange(now);
           }
           
           setLastBeta(avgBeta);
