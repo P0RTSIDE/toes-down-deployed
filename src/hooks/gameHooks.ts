@@ -12,6 +12,7 @@ export function useGameState(settings: GameSettings) {
     items: [],
   });
   const [actionInProgress, setActionInProgress] = useState(false);
+  const [lastActionTimestamp, setLastActionTimestamp] = useState(0);
   
   // Reset the game state
   const resetGame = useCallback(() => {
@@ -19,6 +20,7 @@ export function useGameState(settings: GameSettings) {
     setTimeLeft(settings.timeLimit);
     setCurrentItemIndex(0);
     setActionInProgress(false);
+    setLastActionTimestamp(0);
     setScore({
       correct: 0,
       skipped: 0,
@@ -46,51 +48,71 @@ export function useGameState(settings: GameSettings) {
     setGameState('finished');
   }, []);
 
-  // Mark current item as correct
+  // Mark current item as correct with improved responsiveness
   const markCorrect = useCallback(() => {
-    if (gameState !== 'playing' || actionInProgress) return;
+    if (gameState !== 'playing') return;
     
-    setActionInProgress(true);
+    // Prevent rapid sequential actions (debounce)
+    const now = Date.now();
+    if (now - lastActionTimestamp < 300) return;
+    setLastActionTimestamp(now);
+
+    // Immediately update score and set action in progress
     setScore(prev => ({
       ...prev,
       correct: prev.correct + 1,
       items: [...prev.items, { text: currentItems[currentItemIndex], status: 'correct' }],
     }));
-
-    // Add a delay before showing the next card
-    setTimeout(() => {
-      if (currentItemIndex < currentItems.length - 1) {
-        setCurrentItemIndex(prev => prev + 1);
-      } else {
-        // End the game when we run out of words
-        setGameState('finished');
-      }
-      setActionInProgress(false);
-    }, 2000); // 1000ms delay
-  }, [gameState, currentItems, currentItemIndex, actionInProgress]);
-
-  // Mark current item as skipped
-  const markSkipped = useCallback(() => {
-    if (gameState !== 'playing' || actionInProgress) return;
     
     setActionInProgress(true);
+
+    // Use requestAnimationFrame for smoother transitions
+    requestAnimationFrame(() => {
+      // Shorter delay for better responsiveness
+      setTimeout(() => {
+        if (currentItemIndex < currentItems.length - 1) {
+          setCurrentItemIndex(prev => prev + 1);
+        } else {
+          // End the game when we run out of words
+          setGameState('finished');
+        }
+        setActionInProgress(false);
+      }, 500); // Reduced from 2000ms to 500ms for better responsiveness
+    });
+  }, [gameState, currentItems, currentItemIndex, lastActionTimestamp]);
+
+  // Mark current item as skipped with improved responsiveness
+  const markSkipped = useCallback(() => {
+    if (gameState !== 'playing') return;
+    
+    // Prevent rapid sequential actions (debounce)
+    const now = Date.now();
+    if (now - lastActionTimestamp < 300) return;
+    setLastActionTimestamp(now);
+
+    // Immediately update score and set action in progress
     setScore(prev => ({
       ...prev,
       skipped: prev.skipped + 1,
       items: [...prev.items, { text: currentItems[currentItemIndex], status: 'skipped' }],
     }));
+    
+    setActionInProgress(true);
 
-    // Add a delay before showing the next card
-    setTimeout(() => {
-      if (currentItemIndex < currentItems.length - 1) {
-        setCurrentItemIndex(prev => prev + 1);
-      } else {
-        // End the game when we run out of words
-        setGameState('finished');
-      }
-      setActionInProgress(false);
-    }, 2000); // 1000ms delay
-  }, [gameState, currentItems, currentItemIndex, actionInProgress]);
+    // Use requestAnimationFrame for smoother transitions
+    requestAnimationFrame(() => {
+      // Shorter delay for better responsiveness
+      setTimeout(() => {
+        if (currentItemIndex < currentItems.length - 1) {
+          setCurrentItemIndex(prev => prev + 1);
+        } else {
+          // End the game when we run out of words
+          setGameState('finished');
+        }
+        setActionInProgress(false);
+      }, 500); // Reduced from 2000ms to 500ms for better responsiveness
+    });
+  }, [gameState, currentItems, currentItemIndex, lastActionTimestamp]);
 
   // Timer effect
   useEffect(() => {
@@ -130,6 +152,7 @@ export function useDeviceOrientation() {
   const [lastBeta, setLastBeta] = useState<number | null>(null);
   const [direction, setDirection] = useState<'up' | 'down' | 'neutral'>('neutral');
   const [isSupported, setIsSupported] = useState(false);
+  const [lastDirectionChange, setLastDirectionChange] = useState(0);
 
   useEffect(() => {
     // Check if DeviceOrientationEvent is available
@@ -144,14 +167,24 @@ export function useDeviceOrientation() {
         setOrientation({ beta: e.beta });
         
         if (lastBeta !== null) {
-          const threshold = 35; // degrees of tilt to trigger
+          const threshold = 25; // Reduced threshold for more sensitivity
+          const now = Date.now();
           
-          if (e.beta < -threshold && (lastBeta >= -threshold || lastBeta === null)) {
-            setDirection('up');
-          } else if (e.beta > threshold && (lastBeta <= threshold || lastBeta === null)) {
-            setDirection('down');
-          } else if (Math.abs(e.beta) < threshold/2) {
-            setDirection('neutral');
+          // Add debounce to prevent direction flickering
+          if (now - lastDirectionChange > 250) {
+            if (e.beta < -threshold && (lastBeta >= -threshold || lastBeta === null)) {
+              setDirection('up');
+              setLastDirectionChange(now);
+            } else if (e.beta > threshold && (lastBeta <= threshold || lastBeta === null)) {
+              setDirection('down');
+              setLastDirectionChange(now);
+            } else if (Math.abs(e.beta) < threshold/2) {
+              setDirection('neutral');
+              // Only update the timestamp when changing from non-neutral to neutral
+              if (direction !== 'neutral') {
+                setLastDirectionChange(now);
+              }
+            }
           }
         }
         
@@ -164,7 +197,7 @@ export function useDeviceOrientation() {
     return () => {
       window.removeEventListener('deviceorientation', handleOrientation);
     };
-  }, [lastBeta]);
+  }, [lastBeta, direction, lastDirectionChange]);
 
   // Define interface for DeviceOrientationEvent with iOS-specific requestPermission
   interface DeviceOrientationEventiOS extends DeviceOrientationEvent {
@@ -195,14 +228,20 @@ export function useDeviceOrientation() {
 
 export function useKeyboardControls() {
   const [keyDirection, setKeyDirection] = useState<'up' | 'down' | 'neutral'>('neutral');
+  const [lastKeyChange, setLastKeyChange] = useState(0);
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const now = Date.now();
+      if (now - lastKeyChange < 150) return; // Debounce key presses
+      
       if (e.key === 'ArrowDown') {
         setKeyDirection('down');
+        setLastKeyChange(now);
         e.preventDefault();
       } else if (e.key === 'ArrowUp') {
         setKeyDirection('up');
+        setLastKeyChange(now);
         e.preventDefault();
       }
     };
@@ -221,7 +260,7 @@ export function useKeyboardControls() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+  }, [lastKeyChange]);
 
   return keyDirection;
 }
