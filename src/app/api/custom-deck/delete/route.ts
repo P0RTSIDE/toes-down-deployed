@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-// Directory to store custom decks
-const CUSTOM_DECKS_DIR = path.join(process.cwd(), 'custom-decks');
+import { customDecks } from '../route';
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -27,18 +23,16 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const filePath = path.join(CUSTOM_DECKS_DIR, `${sanitizedDeckName}.txt`);
-
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
+    // Check if deck exists in memory
+    if (!customDecks.has(sanitizedDeckName)) {
       return NextResponse.json(
         { error: 'Deck not found' },
         { status: 404 }
       );
     }
 
-    // Delete the file
-    fs.unlinkSync(filePath);
+    // Delete the deck from memory
+    customDecks.delete(sanitizedDeckName);
 
     return NextResponse.json({
       success: true,

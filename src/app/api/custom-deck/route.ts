@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 
-// Directory to store custom decks
-const CUSTOM_DECKS_DIR = path.join(process.cwd(), 'custom-decks');
+// In-memory storage for custom decks
+// In a production app, you'd want to use a database like MongoDB, PostgreSQL, etc.
+const customDecks = new Map<string, string[]>();
 
-// Ensure the custom decks directory exists
-function ensureCustomDecksDir() {
-  if (!fs.existsSync(CUSTOM_DECKS_DIR)) {
-    fs.mkdirSync(CUSTOM_DECKS_DIR, { recursive: true });
+// Export the customDecks map so other API routes can access it
+export { customDecks };
+
+export async function GET() {
+  try {
+    // Return all custom deck names
+    const deckNames = Array.from(customDecks.keys());
+    return NextResponse.json(deckNames);
+  } catch (error) {
+    console.error('Error getting custom decks:', error);
+    return NextResponse.json(
+      { error: 'Failed to get custom decks' },
+      { status: 500 }
+    );
   }
 }
 
@@ -35,12 +44,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ensure custom decks directory exists
-    ensureCustomDecksDir();
-
     // Check if deck already exists
-    const filePath = path.join(CUSTOM_DECKS_DIR, `${sanitizedDeckName}.txt`);
-    if (fs.existsSync(filePath)) {
+    if (customDecks.has(sanitizedDeckName)) {
       return NextResponse.json(
         { error: 'A deck with this name already exists' },
         { status: 409 }
@@ -60,8 +65,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Write the custom deck file
-    fs.writeFileSync(filePath, wordList.join('\n'), 'utf8');
+    // Store the custom deck in memory
+    customDecks.set(sanitizedDeckName, wordList);
 
     return NextResponse.json({
       success: true,

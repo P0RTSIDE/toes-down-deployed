@@ -1,4 +1,5 @@
 import { getPackItems } from '@/utils/game';
+import { customDecks } from './custom-deck/route';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
@@ -14,8 +15,15 @@ export async function POST(req: NextRequest) {
     
     let allItems: string[] = [];
     for (const packName of body.packs) {
-      const items = getPackItems(packName);
-      allItems = [...allItems, ...items];
+      // Check if it's a custom deck first
+      if (customDecks.has(packName)) {
+        const customItems = customDecks.get(packName) || [];
+        allItems = [...allItems, ...customItems];
+      } else {
+        // Otherwise, try to get from default packs
+        const items = getPackItems(packName);
+        allItems = [...allItems, ...items];
+      }
     }
     
     return NextResponse.json(allItems);
