@@ -1,5 +1,5 @@
 import { getPackNames } from '@/utils/game';
-import { customDecks } from './custom-deck/route';
+import { customDecks } from '../custom-deck/storage';
 import { NextResponse } from 'next/server';
 
 export async function GET() {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { customDecks } from '../custom-deck/route';
+import { customDecks } from '../storage';
 
 export async function GET(req: NextRequest) {
   try {

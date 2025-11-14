@@ -1,5 +1,5 @@
 import { getPackItems } from '@/utils/game';
-import { customDecks } from './custom-deck/route';
+import { customDecks } from '../custom-deck/storage';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {

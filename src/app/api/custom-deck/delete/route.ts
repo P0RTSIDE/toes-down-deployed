@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { customDecks } from '../route';
+import { customDecks } from '../storage';
 
 export async function DELETE(req: NextRequest) {
   try {

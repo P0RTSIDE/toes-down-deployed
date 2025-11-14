@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// In-memory storage for custom decks
-// In a production app, you'd want to use a database like MongoDB, PostgreSQL, etc.
-const customDecks = new Map<string, string[]>();
-
-// Export the customDecks map so other API routes can access it
-export { customDecks };
+import { customDecks } from './storage';
 
 export async function GET() {
   try {
